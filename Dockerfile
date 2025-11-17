@@ -1,14 +1,12 @@
-# Use stable Java 17 image
-FROM eclipse-temurin:17-jdk-jammy
-
-# Set working directory
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
-# Copy your Spring Boot jar into the container
-
-COPY target/*.jar app.jar
-
-# Expose the app port (example 8082)
-EXPOSE 8082
-
-# Run the app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src ./src
+RUN mvn clean package -DskipTests
+# ---------- Runtime Stage ----------
+FROM eclipse-temurin:21-jdk-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","app.jar"]
